@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Выгода">
+<meta name="apple-mobile-web-app-title" content="Что выгоднее?">
 <meta name="format-detection" content="telephone=no">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -39,6 +39,8 @@
   --group: #FFFFFF;
   --group-field: #F2F2F6;
   --backdrop: rgba(0, 0, 0, 0.4);
+  --x-bg: rgba(118, 118, 128, 0.20);
+  --x-fg: rgba(60, 60, 67, 0.65);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -63,6 +65,8 @@
     --group: #2C2C2E;
     --group-field: #3A3A3C;
     --backdrop: rgba(0, 0, 0, 0.6);
+    --x-bg: rgba(118, 118, 128, 0.40);
+    --x-fg: rgba(235, 235, 245, 0.65);
   }
 }
 
@@ -128,6 +132,12 @@ input::placeholder { color: var(--text-2); opacity: 0.7; }
   gap: 14px;
 }
 
+/* При открытой клавиатуре на iOS убираем нижний safe-area-отступ,
+   чтобы не было большого пустого зазора над клавиатурой. */
+body.kb-open .app {
+  padding-bottom: 16px;
+}
+
 .top {
   display: flex;
   align-items: center;
@@ -152,6 +162,49 @@ h1 {
 .link-strong { font-weight: 600; }
 
 .link-danger { color: var(--danger); }
+
+.accent-pick {
+  position: fixed;
+  z-index: 20;
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+/* Пока открыта клавиатура, прячем плавающий пикер, чтобы не мешал. */
+body.kb-open .accent-pick { display: none; }
+
+.accent-pick input[type="color"] {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.accent-pick input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+
+.accent-pick input[type="color"]::-webkit-color-swatch {
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+
+.accent-pick input[type="color"]::-moz-color-swatch {
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
 
 /* Тип товара */
 .seg {
@@ -214,6 +267,7 @@ h1 {
 }
 
 .card {
+  position: relative;
   border-radius: 18px;
   padding: 10px 12px 12px;
   display: flex;
@@ -235,6 +289,26 @@ h1 {
   min-height: 44px;
 }
 
+.card-del {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--x-bg);
+  color: var(--x-fg);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.card-del:active { transform: scale(0.9); }
+
 .name {
   flex: 1 1 60px;
   width: 60px;
@@ -251,6 +325,8 @@ h1 {
 
 .pill {
   flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 2px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -569,6 +645,10 @@ h1 {
   </button>
 </main>
 
+<label class="accent-pick" title="Цвет акцента">
+  <input type="color" id="accent" value="#0E7A4B" aria-label="Цвет акцента">
+</label>
+
 <dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
   <div class="sheet-body">
     <div class="grabber" aria-hidden="true"></div>
@@ -616,6 +696,9 @@ h1 {
 <template id="card-tpl">
   <article class="card">
     <div class="card-head">
+      <button type="button" class="card-del" aria-label="Удалить товар" hidden>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></svg>
+      </button>
       <input class="name" type="text" aria-label="Название товара" autocomplete="off" maxlength="24" enterkeyhint="done">
       <span class="pill pill-best" hidden>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
@@ -731,6 +814,187 @@ const cardsEl = $('cards');
 const tpl = $('card-tpl');
 const sheetEl = $('sheet');
 
+// --- акцентный цвет: из одного primary строится вся палитра ---
+
+const ACCENT_KEY = 'vygoda-accent-v1';
+const DEFAULT_ACCENT = '#0E7A4B';
+const darkMedia = window.matchMedia('(prefers-color-scheme: dark)');
+
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+
+function hexToRgb(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex).trim());
+  if (!m) return null;
+  const int = parseInt(m[1], 16);
+  return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
+}
+
+function rgbToHex({ r, g, b }) {
+  const h = (v) => Math.round(clamp01(v / 255) * 255).toString(16).padStart(2, '0');
+  return '#' + h(r) + h(g) + h(b);
+}
+
+function rgbToHsl({ r, g, b }) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const d = max - min;
+  let h = 0;
+  let s = 0;
+  if (d !== 0) {
+    s = d / (1 - Math.abs(2 * l - 1));
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  return { h, s, l };
+}
+
+function hslToRgb({ h, s, l }) {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (h < 60) { r = c; g = x; }
+  else if (h < 120) { r = x; g = c; }
+  else if (h < 180) { g = c; b = x; }
+  else if (h < 240) { g = x; b = c; }
+  else if (h < 300) { r = x; b = c; }
+  else { r = c; b = x; }
+  return { r: (r + m) * 255, g: (g + m) * 255, b: (b + m) * 255 };
+}
+
+function relLum({ r, g, b }) {
+  const f = (v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+
+function contrast(l1, l2) {
+  const hi = Math.max(l1, l2);
+  const lo = Math.min(l1, l2);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+// Подбирает светлоту так, чтобы контраст с фоном был не ниже target.
+function fitContrast(hsl, bgLum, target, step) {
+  let l = hsl.l;
+  for (let i = 0; i < 100; i += 1) {
+    if (contrast(relLum(hslToRgb({ h: hsl.h, s: hsl.s, l })), bgLum) >= target) break;
+    const next = clamp01(l + step);
+    if (next === l) break;
+    l = next;
+  }
+  return { h: hsl.h, s: hsl.s, l };
+}
+
+const BG_LUM_LIGHT = relLum(hexToRgb('#F2F2F6'));
+const BG_LUM_DARK = relLum(hexToRgb('#000000'));
+const WHITE_LUM = relLum({ r: 255, g: 255, b: 255 });
+
+// Из одного primary-цвета выводит accent / accent-text / on-accent / tint для темы.
+function derivePalette(primaryHex, dark) {
+  const base = rgbToHsl(hexToRgb(primaryHex) || hexToRgb(DEFAULT_ACCENT));
+  const bgLum = dark ? BG_LUM_DARK : BG_LUM_LIGHT;
+
+  // accent — сплошная заливка (итог, пилюля «Выгоднее», активная кнопка)
+  const accentHsl = dark ? { h: base.h, s: base.s, l: clamp01(base.l * 0.92) } : base;
+  const accentRgb = hslToRgb(accentHsl);
+  const accent = rgbToHex(accentRgb);
+
+  // on-accent — текст поверх заливки: белый либо тёмный, что контрастнее
+  const onAccent = contrast(relLum(accentRgb), WHITE_LUM) >= 3.2 ? '#FFFFFF' : '#1C1C1E';
+
+  // accent-text — текст/обводка на фоне страницы: в тёмной теме делаем ярче
+  const textHsl = fitContrast(
+    { h: base.h, s: Math.min(base.s, dark ? 0.85 : 1), l: base.l },
+    bgLum, dark ? 6.5 : 4.5, dark ? 0.02 : -0.02
+  );
+  const accentText = rgbToHex(hslToRgb(textHsl));
+
+  // tint — мягкая подложка выгодной карточки
+  const tintHsl = dark
+    ? { h: base.h, s: Math.min(base.s, 0.4), l: 0.12 }
+    : { h: base.h, s: Math.min(base.s, 0.5), l: 0.95 };
+  const tint = rgbToHex(hslToRgb(tintHsl));
+
+  return { accent, accentText, onAccent, tint };
+}
+
+function getAccent() {
+  try {
+    const hex = localStorage.getItem(ACCENT_KEY);
+    return hexToRgb(hex) ? hex : DEFAULT_ACCENT;
+  } catch (err) {
+    return DEFAULT_ACCENT;
+  }
+}
+
+function setAccent(hex) {
+  try {
+    localStorage.setItem(ACCENT_KEY, hex);
+  } catch (err) {
+    /* хранилище недоступно */
+  }
+}
+
+function applyAccent() {
+  const hex = getAccent();
+  const picker = $('accent');
+  if (picker) picker.value = hex;
+  const vars = derivePalette(hex, darkMedia.matches);
+  const root = document.documentElement.style;
+  root.setProperty('--accent', vars.accent);
+  root.setProperty('--accent-text', vars.accentText);
+  root.setProperty('--on-accent', vars.onAccent);
+  root.setProperty('--tint', vars.tint);
+}
+
+// --- тактильный отклик ---
+// Android/Chrome: Vibration API. iOS не поддерживает vibrate, поэтому
+// используем системный отклик скрытого переключателя (Safari/PWA, iOS 17.4+).
+const haptic = (() => {
+  const canVibrate = typeof navigator.vibrate === 'function';
+  let swLabel = null;
+  if (!canVibrate) {
+    try {
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.setAttribute('switch', '');
+      input.id = 'haptic-switch';
+      input.tabIndex = -1;
+      input.setAttribute('aria-hidden', 'true');
+      input.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;';
+      swLabel = document.createElement('label');
+      swLabel.setAttribute('for', 'haptic-switch');
+      swLabel.setAttribute('aria-hidden', 'true');
+      swLabel.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;';
+      document.body.append(input, swLabel);
+    } catch (err) {
+      swLabel = null;
+    }
+  }
+  return () => {
+    if (canVibrate) {
+      try { navigator.vibrate(8); } catch (err) { /* не поддерживается */ }
+    } else if (swLabel) {
+      try { swLabel.click(); } catch (err) { /* не поддерживается */ }
+    }
+  };
+})();
+
+// Лёгкий отклик почти на каждую кнопку — на нажатии, как в iOS.
+document.addEventListener('pointerdown', (event) => {
+  if (event.target.closest('button')) haptic();
+}, true);
+
 let seq = 0;
 let sheetId = null;
 let state = load() || initial();
@@ -796,6 +1060,7 @@ function renderCards() {
     const name = card.querySelector('.name');
     name.value = item.title;
     name.placeholder = 'Товар ' + (index + 1);
+    card.querySelector('.card-del').hidden = state.items.length <= MIN_ITEMS;
     card.querySelector('.price').value = item.price;
     card.querySelector('.qty').value = item.qty;
     cardsEl.appendChild(card);
@@ -967,7 +1232,13 @@ cardsEl.addEventListener('click', (event) => {
   if (!card) return;
   const item = findItem(card.dataset.id);
   if (!item) return;
-  if (event.target.closest('.unit')) {
+  if (event.target.closest('.card-del')) {
+    if (state.items.length <= MIN_ITEMS) return;
+    if (sheetId === item.id) closeSheet();
+    state.items = state.items.filter((it) => it.id !== item.id);
+    save();
+    renderCards();
+  } else if (event.target.closest('.unit')) {
     item.big = !item.big;
     commit();
   } else if (event.target.closest('.more')) {
@@ -1004,6 +1275,14 @@ $('reset').addEventListener('click', () => {
   save();
   renderCards();
 });
+
+$('accent').addEventListener('input', (event) => {
+  setAccent(event.target.value);
+  applyAccent();
+});
+
+// Палитра зависит от светлой/тёмной темы — пересчитываем при смене.
+darkMedia.addEventListener('change', applyAccent);
 
 // События блока «Дополнительно»
 [['s-packs', 'packs'], ['s-n', 'buyN'], ['s-m', 'payM']].forEach(([inputId, key]) => {
@@ -1046,7 +1325,28 @@ sheetEl.addEventListener('close', () => {
   sheetId = null;
 });
 
+applyAccent();
 renderCards();
+
+// --- клавиатура на iOS ---
+// При открытой клавиатуре убираем лишний нижний отступ (кл. kb-open),
+// а при её закрытии плавно прокручиваем страницу наверх.
+const vv = window.visualViewport;
+if (vv) {
+  let kbOpen = false;
+  const onViewport = () => {
+    // На iOS innerHeight (layout viewport) постоянна, а visualViewport
+    // сжимается на высоту клавиатуры. Порог 120px отсекает сворачивание
+    // адресной строки Safari, чтобы не ловить ложное закрытие.
+    const kb = window.innerHeight - vv.height;
+    const open = kb > 120;
+    if (open === kbOpen) return;
+    kbOpen = open;
+    document.body.classList.toggle('kb-open', open);
+    if (!open) window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  vv.addEventListener('resize', onViewport);
+}
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

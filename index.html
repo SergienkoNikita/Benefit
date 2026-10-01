@@ -1,0 +1,1058 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Калькулятор выгоды</title>
+<meta name="description" content="Сравнение товаров по цене за 100 г, 100 мл или штуку">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#F2F2F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Выгода">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #F2F2F6;
+  --card: #FFFFFF;
+  --field: #F2F2F6;
+  --field-best: #FFFFFF;
+  --unit-bg: #FFFFFF;
+  --text: #1C1C1E;
+  --text-2: #5A5A60;
+  --seg: #E2E2E8;
+  --seg-on: #FFFFFF;
+  --line: #C9C9D0;
+  --pill: #E2E2E8;
+  --pill-text: #2C2C31;
+  --accent: #0E7A4B;
+  --accent-text: #0E7A4B;
+  --on-accent: #FFFFFF;
+  --tint: #EDF5F0;
+  --danger: #B3261E;
+  --sheet: #F2F2F6;
+  --group: #FFFFFF;
+  --group-field: #F2F2F6;
+  --backdrop: rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --card: #1C1C1E;
+    --field: #2C2C2E;
+    --field-best: #26342D;
+    --unit-bg: #3A3A3C;
+    --text: #F2F2F7;
+    --text-2: #A9A9B2;
+    --seg: #1C1C1E;
+    --seg-on: #48484A;
+    --line: #48484A;
+    --pill: #3A3A3C;
+    --pill-text: #F2F2F7;
+    --accent: #12814F;
+    --accent-text: #5BD19A;
+    --tint: #16241D;
+    --danger: #FF8A80;
+    --sheet: #1C1C1E;
+    --group: #2C2C2E;
+    --group-field: #3A3A3C;
+    --backdrop: rgba(0, 0, 0, 0.6);
+  }
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+input {
+  border: none;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  min-width: 0;
+}
+
+input:focus { outline: none; }
+
+input::placeholder { color: var(--text-2); opacity: 0.7; }
+
+.app {
+  max-width: 480px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding:
+    calc(env(safe-area-inset-top, 0px) + 16px)
+    calc(env(safe-area-inset-right, 0px) + 16px)
+    calc(env(safe-area-inset-bottom, 0px) + 24px)
+    calc(env(safe-area-inset-left, 0px) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+
+.link {
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--accent-text);
+}
+
+.link-strong { font-weight: 600; }
+
+.link-danger { color: var(--danger); }
+
+/* Тип товара */
+.seg {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  padding: 3px;
+  border-radius: 13px;
+  background: var(--seg);
+}
+
+.seg button {
+  height: 44px;
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+.seg button[aria-pressed="true"] {
+  background: var(--seg-on);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* Итог */
+.verdict {
+  border-radius: 18px;
+  padding: 14px 16px;
+  min-height: 75px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.verdict.is-empty {
+  background: var(--seg);
+  color: var(--text-2);
+}
+
+.v-title {
+  font-size: 20px;
+  line-height: 25px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.v-sub {
+  font-size: 15px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+/* Карточки товаров */
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card {
+  border-radius: 18px;
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--card);
+  border: 2px solid var(--card);
+}
+
+.card.is-best {
+  background: var(--tint);
+  border-color: var(--accent-text);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.name {
+  flex: 1 1 60px;
+  width: 60px;
+  height: 44px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.name:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.pill {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pill-best {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.pill-diff {
+  background: var(--pill);
+  color: var(--pill-text);
+}
+
+.unit-price {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.up-value {
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.up-base {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-2);
+}
+
+.fields {
+  display: flex;
+  gap: 8px;
+}
+
+.field {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 52px;
+  border-radius: 12px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  background: var(--field);
+}
+
+.field span,
+.field-qty label span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.field input,
+.field-qty label input {
+  width: 100%;
+  height: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.field:focus-within {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 1px;
+}
+
+.field.is-invalid {
+  outline: 2px solid var(--danger);
+  outline-offset: 1px;
+}
+
+.field-qty {
+  flex: 1.3 1 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px 0 10px;
+}
+
+.field-qty:not(:has(.unit:not([hidden]))) { padding-right: 10px; }
+
+.field-qty label {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.unit {
+  flex-shrink: 0;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--unit-bg);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.more {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--field);
+}
+
+.card.is-best .field,
+.card.is-best .more {
+  background: var(--field-best);
+}
+
+.card .more.is-on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 9px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.add {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+/* Блок «Дополнительно» */
+.sheet {
+  width: 100%;
+  max-width: min(480px, 100%);
+  max-height: 92vh;
+  max-height: 92dvh;
+  margin: auto auto 0;
+  padding: 0;
+  border: none;
+  border-radius: 22px 22px 0 0;
+  background: var(--sheet);
+  color: var(--text);
+  overflow: auto;
+}
+
+.sheet::backdrop { background: var(--backdrop); }
+
+.sheet[open] { animation: sheet-in 0.22s ease-out; }
+
+@keyframes sheet-in {
+  from { transform: translateY(32px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet[open] { animation: none; }
+}
+
+.sheet-body {
+  padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.grabber {
+  align-self: center;
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--line);
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sheet-head h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 25px;
+  font-weight: 700;
+}
+
+.sheet-item {
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.group {
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--group);
+}
+
+.group h3 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.group .field {
+  flex: none;
+  background: var(--group-field);
+}
+
+.group .fields .field { flex: 1 1 0; }
+
+.hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-2);
+}
+
+.hint-strong {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.hint-error { color: var(--danger); }
+
+.sheet-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Узкие экраны */
+@media (max-width: 359px) {
+  h1 {
+    font-size: 24px;
+    line-height: 30px;
+  }
+
+  .pill-best span { display: none; }
+
+  .fields { gap: 6px; }
+
+  .more { width: 44px; }
+}
+</style>
+</head>
+<body>
+
+<main class="app">
+  <header class="top">
+    <h1>Что выгоднее</h1>
+    <button type="button" class="link" id="reset">Сбросить</button>
+  </header>
+
+  <div class="seg" id="types" role="group" aria-label="Тип товара">
+    <button type="button" data-type="w" aria-pressed="true">Вес</button>
+    <button type="button" data-type="v" aria-pressed="false">Объём</button>
+    <button type="button" data-type="p" aria-pressed="false">Штуки</button>
+  </div>
+
+  <div class="verdict is-empty" id="verdict" aria-live="polite">
+    <div class="v-title" id="v-title" hidden></div>
+    <div class="v-sub" id="v-sub">Введите цену и количество хотя бы у двух товаров</div>
+  </div>
+
+  <div class="cards" id="cards"></div>
+
+  <button type="button" class="add" id="add">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    <span>Добавить товар</span>
+  </button>
+</main>
+
+<dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
+  <div class="sheet-body">
+    <div class="grabber" aria-hidden="true"></div>
+
+    <div class="sheet-head">
+      <div>
+        <h2 id="sheet-title">Дополнительно</h2>
+        <div class="sheet-item" id="sheet-item"></div>
+      </div>
+      <button type="button" class="link link-strong" id="sheet-done">Готово</button>
+    </div>
+
+    <section class="group">
+      <h3>Мультиупаковка</h3>
+      <label class="field">
+        <span>Упаковок в наборе</span>
+        <input id="s-packs" type="text" inputmode="numeric" placeholder="1" autocomplete="off">
+      </label>
+      <p class="hint" id="s-pack-hint"></p>
+    </section>
+
+    <section class="group">
+      <h3>Акция «N по цене M»</h3>
+      <div class="fields">
+        <label class="field">
+          <span>Беру, шт</span>
+          <input id="s-n" type="text" inputmode="numeric" placeholder="3" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>Плачу за, шт</span>
+          <input id="s-m" type="text" inputmode="numeric" placeholder="2" autocomplete="off">
+        </label>
+      </div>
+      <p class="hint hint-strong" id="s-promo-hint"></p>
+      <p class="hint">Выгода действует, только если купить весь набор.</p>
+    </section>
+
+    <div class="sheet-actions">
+      <button type="button" class="link" id="s-clear">Сбросить условия</button>
+      <button type="button" class="link link-danger" id="s-remove">Удалить товар</button>
+    </div>
+  </div>
+</dialog>
+
+<template id="card-tpl">
+  <article class="card">
+    <div class="card-head">
+      <input class="name" type="text" aria-label="Название товара" autocomplete="off" maxlength="24" enterkeyhint="done">
+      <span class="pill pill-best" hidden>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        <span>Выгоднее</span>
+      </span>
+      <span class="pill pill-diff" hidden></span>
+      <div class="unit-price">
+        <span class="up-value">—</span>
+        <span class="up-base"></span>
+      </div>
+    </div>
+    <div class="fields">
+      <label class="field">
+        <span>Цена, ₽</span>
+        <input class="price" type="text" inputmode="decimal" placeholder="0" autocomplete="off" enterkeyhint="done">
+      </label>
+      <div class="field field-qty">
+        <label>
+          <span class="qty-label">Вес</span>
+          <input class="qty" type="text" inputmode="decimal" placeholder="0" autocomplete="off" enterkeyhint="done">
+        </label>
+        <button type="button" class="unit"></button>
+      </div>
+      <button type="button" class="more">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h9"/><path d="M17 8h3"/><circle cx="15" cy="8" r="2"/><path d="M4 16h3"/><path d="M11 16h9"/><circle cx="9" cy="16" r="2"/></svg>
+      </button>
+    </div>
+    <div class="chips" hidden>
+      <span class="chip chip-pack" hidden></span>
+      <span class="chip chip-promo" hidden></span>
+    </div>
+  </article>
+</template>
+
+<script>
+'use strict';
+
+// --- расчёт ---
+
+const NBSP = '\u00A0';
+
+const TYPES = {
+  w: { small: 'г', big: 'кг', base: 100, label: 'за 100' + NBSP + 'г', qtyLabel: 'Вес' },
+  v: { small: 'мл', big: 'л', base: 100, label: 'за 100' + NBSP + 'мл', qtyLabel: 'Объём' },
+  p: { small: 'шт', big: 'шт', base: 1, label: 'за 1' + NBSP + 'шт', qtyLabel: 'Количество, шт' }
+};
+
+// Число из поля ввода: принимает запятую и точку, пустое и неположительное — null.
+function num(value) {
+  const text = String(value == null ? '' : value).replace(/\s/g, '').replace(',', '.');
+  if (!/^\d*\.?\d+$|^\d+\.$/.test(text)) return null;
+  const n = parseFloat(text);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function fmt(n) {
+  return n.toFixed(2).replace('.', ',');
+}
+
+function trim(n) {
+  return String(Math.round(n * 100) / 100).replace('.', ',');
+}
+
+function money(n) {
+  return Number.isInteger(n) ? String(n) : fmt(n);
+}
+
+function unitOf(type, big) {
+  return big && type !== 'p' ? TYPES[type].big : TYPES[type].small;
+}
+
+// Расчёт одного товара. unit — цена за базовую единицу (100 г, 100 мл или 1 шт).
+function calc(item, type) {
+  const price = num(item.price);
+  const qty = num(item.qty);
+  const packs = num(item.packs) || 1;
+  const n = num(item.buyN);
+  const m = num(item.payM);
+  const promo = n !== null && m !== null && n > m;
+  const promoBroken = n !== null && m !== null && n <= m;
+  const mult = item.big && type !== 'p' ? 1000 : 1;
+  const pay = price !== null ? price * (promo ? m : 1) : null;
+  const total = qty !== null ? qty * packs * (promo ? n : 1) : null;
+  const unit = pay !== null && total !== null ? (pay / (total * mult)) * TYPES[type].base : null;
+  return { qty, packs, n, m, promo, promoBroken, pay, total, unit, hasPack: packs > 1 };
+}
+
+// Сравнение всех товаров: кто выгоднее и на сколько процентов дороже остальные.
+function compare(items, type) {
+  const rows = items.map((item) => calc(item, type));
+  const valid = rows.filter((r) => r.unit !== null);
+  const best = valid.length >= 2 ? Math.min(...valid.map((r) => r.unit)) : null;
+  rows.forEach((r) => {
+    r.isBest = best !== null && r.unit !== null && Math.abs(r.unit - best) < 1e-9;
+    r.diff = best !== null && r.unit !== null && !r.isBest ? (r.unit / best - 1) * 100 : null;
+  });
+  const allEqual = best !== null && valid.every((r) => r.isBest);
+  return { rows, best, validCount: valid.length, allEqual };
+}
+
+function pct(diff) {
+  return diff.toFixed(1).replace('.', ',') + NBSP + '%';
+}
+
+// --- интерфейс ---
+
+const STORE_KEY = 'vygoda-state-v1';
+const MAX_ITEMS = 5;
+const MIN_ITEMS = 2;
+
+const $ = (id) => document.getElementById(id);
+const cardsEl = $('cards');
+const tpl = $('card-tpl');
+const sheetEl = $('sheet');
+
+let seq = 0;
+let sheetId = null;
+let state = load() || initial();
+
+function blank(title) {
+  seq += 1;
+  return { id: 'i' + Date.now().toString(36) + seq, title, price: '', qty: '', big: false, packs: '', buyN: '', payM: '' };
+}
+
+function initial() {
+  return { type: 'w', items: [blank('Товар 1'), blank('Товар 2')] };
+}
+
+function nextTitle() {
+  const taken = new Set(state.items.map((it) => it.title.trim()));
+  let i = 1;
+  while (taken.has('Товар ' + i)) i += 1;
+  return 'Товар ' + i;
+}
+
+function titleOf(item, index) {
+  return item.title.trim() || 'Товар ' + (index + 1);
+}
+
+function load() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (!data || !TYPES[data.type] || !Array.isArray(data.items)) return null;
+    if (data.items.length < MIN_ITEMS || data.items.length > MAX_ITEMS) return null;
+    const items = data.items.map((it, i) => ({
+      id: 's' + i,
+      title: String(it.title ?? ''),
+      price: String(it.price ?? ''),
+      qty: String(it.qty ?? ''),
+      big: Boolean(it.big),
+      packs: String(it.packs ?? ''),
+      buyN: String(it.buyN ?? ''),
+      payM: String(it.payM ?? '')
+    }));
+    return { type: data.type, items };
+  } catch (err) {
+    return null;
+  }
+}
+
+function save() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  } catch (err) {
+    /* хранилище недоступно — работаем без сохранения */
+  }
+}
+
+function findItem(id) {
+  return state.items.find((it) => it.id === id) || null;
+}
+
+function renderCards() {
+  cardsEl.textContent = '';
+  state.items.forEach((item, index) => {
+    const card = tpl.content.firstElementChild.cloneNode(true);
+    card.dataset.id = item.id;
+    const name = card.querySelector('.name');
+    name.value = item.title;
+    name.placeholder = 'Товар ' + (index + 1);
+    card.querySelector('.price').value = item.price;
+    card.querySelector('.qty').value = item.qty;
+    cardsEl.appendChild(card);
+  });
+  update();
+}
+
+function setInvalid(input, raw) {
+  const bad = String(raw).trim() !== '' && num(raw) === null;
+  input.setAttribute('aria-invalid', bad ? 'true' : 'false');
+  const field = input.closest('.field');
+  if (field) field.classList.toggle('is-invalid', bad);
+}
+
+function update() {
+  const type = state.type;
+  const info = TYPES[type];
+  const result = compare(state.items, type);
+
+  document.querySelectorAll('#types button').forEach((btn) => {
+    btn.setAttribute('aria-pressed', String(btn.dataset.type === type));
+  });
+
+  // Итог
+  const verdict = $('verdict');
+  const vTitle = $('v-title');
+  const vSub = $('v-sub');
+  if (result.best === null) {
+    verdict.classList.add('is-empty');
+    vTitle.hidden = true;
+    vSub.textContent = 'Введите цену и количество хотя бы у двух товаров';
+  } else {
+    verdict.classList.remove('is-empty');
+    vTitle.hidden = false;
+    const bestPrice = fmt(result.best) + NBSP + '₽ ' + info.label;
+    if (result.allEqual) {
+      vTitle.textContent = 'Цена одинаковая';
+      vSub.textContent = bestPrice;
+    } else {
+      const bestIndex = result.rows.findIndex((r) => r.isBest);
+      vTitle.textContent = 'Выгоднее: ' + titleOf(state.items[bestIndex], bestIndex);
+      if (result.validCount === 2) {
+        const otherIndex = result.rows.findIndex((r) => r.diff !== null);
+        vSub.textContent = titleOf(state.items[otherIndex], otherIndex) + ' дороже на ' + pct(result.rows[otherIndex].diff);
+      } else {
+        vSub.textContent = bestPrice;
+      }
+    }
+  }
+
+  // Карточки
+  state.items.forEach((item, index) => {
+    const card = cardsEl.children[index];
+    if (!card) return;
+    const row = result.rows[index];
+    const unit = unitOf(type, item.big);
+    const title = titleOf(item, index);
+
+    card.classList.toggle('is-best', row.isBest);
+    card.querySelector('.pill-best').hidden = !row.isBest;
+    const diffPill = card.querySelector('.pill-diff');
+    diffPill.hidden = row.diff === null;
+    diffPill.textContent = row.diff === null ? '' : '+' + pct(row.diff);
+
+    card.querySelector('.up-value').textContent = row.unit === null ? '—' : fmt(row.unit) + NBSP + '₽';
+    card.querySelector('.up-base').textContent = info.label;
+
+    setInvalid(card.querySelector('.price'), item.price);
+    setInvalid(card.querySelector('.qty'), item.qty);
+
+    const unitBtn = card.querySelector('.unit');
+    card.querySelector('.qty-label').textContent = info.qtyLabel;
+    unitBtn.textContent = unit;
+    unitBtn.hidden = type === 'p';
+    unitBtn.setAttribute('aria-label', 'Единица: ' + unit + '. Сменить');
+
+    const hasExtras = row.hasPack || row.promo;
+    const more = card.querySelector('.more');
+    more.classList.toggle('is-on', hasExtras);
+    more.setAttribute('aria-label', 'Дополнительно: ' + title + (hasExtras ? ' (условия заданы)' : ''));
+
+    const chips = card.querySelector('.chips');
+    const packChip = card.querySelector('.chip-pack');
+    const promoChip = card.querySelector('.chip-promo');
+    chips.hidden = !hasExtras;
+    packChip.hidden = !row.hasPack;
+    packChip.textContent = row.hasPack
+      ? trim(row.packs) + ' × ' + (row.qty === null ? '…' : trim(row.qty) + NBSP + unit)
+      : '';
+    promoChip.hidden = !row.promo;
+    promoChip.textContent = row.promo
+      ? trim(row.n) + ' по цене ' + trim(row.m) + (row.pay === null ? '' : ', к оплате ' + money(row.pay) + NBSP + '₽')
+      : '';
+  });
+
+  $('add').hidden = state.items.length >= MAX_ITEMS;
+  updateSheet(result);
+}
+
+function updateSheet(result) {
+  if (sheetId === null) return;
+  const index = state.items.findIndex((it) => it.id === sheetId);
+  if (index === -1) return;
+  const item = state.items[index];
+  const row = result.rows[index];
+  const unit = unitOf(state.type, item.big);
+
+  $('sheet-item').textContent = titleOf(item, index);
+  $('s-remove').hidden = state.items.length <= MIN_ITEMS;
+
+  setInvalid($('s-packs'), item.packs);
+  setInvalid($('s-n'), item.buyN);
+  setInvalid($('s-m'), item.payM);
+
+  $('s-pack-hint').textContent = row.hasPack && row.qty !== null
+    ? trim(row.packs) + ' × ' + trim(row.qty) + NBSP + unit + ' = ' + trim(row.packs * row.qty) + NBSP + unit
+    : 'Заполните, если цена на ценнике указана за набор из нескольких упаковок.';
+
+  const promoHint = $('s-promo-hint');
+  promoHint.classList.toggle('hint-error', row.promoBroken);
+  if (row.promoBroken) {
+    promoHint.textContent = '«Беру» должно быть больше, чем «Плачу за»';
+  } else if (row.promo && row.pay !== null && row.total !== null) {
+    promoHint.textContent = 'К оплате ' + money(row.pay) + NBSP + '₽ за ' + trim(row.total) + NBSP + unit;
+  } else if (row.promo) {
+    promoHint.textContent = 'Введите цену и количество на карточке товара';
+  } else {
+    promoHint.textContent = 'Например: 3 по цене 2';
+  }
+}
+
+function openSheet(id) {
+  const item = findItem(id);
+  if (!item) return;
+  sheetId = id;
+  $('s-packs').value = item.packs;
+  $('s-n').value = item.buyN;
+  $('s-m').value = item.payM;
+  update();
+  if (typeof sheetEl.showModal === 'function') sheetEl.showModal();
+  else sheetEl.setAttribute('open', '');
+}
+
+function closeSheet() {
+  if (typeof sheetEl.close === 'function' && sheetEl.open) sheetEl.close();
+  else sheetEl.removeAttribute('open');
+  sheetId = null;
+}
+
+function commit() {
+  save();
+  update();
+}
+
+// События карточек
+cardsEl.addEventListener('input', (event) => {
+  const card = event.target.closest('.card');
+  if (!card) return;
+  const item = findItem(card.dataset.id);
+  if (!item) return;
+  if (event.target.classList.contains('name')) item.title = event.target.value;
+  else if (event.target.classList.contains('price')) item.price = event.target.value;
+  else if (event.target.classList.contains('qty')) item.qty = event.target.value;
+  commit();
+});
+
+cardsEl.addEventListener('click', (event) => {
+  const card = event.target.closest('.card');
+  if (!card) return;
+  const item = findItem(card.dataset.id);
+  if (!item) return;
+  if (event.target.closest('.unit')) {
+    item.big = !item.big;
+    commit();
+  } else if (event.target.closest('.more')) {
+    openSheet(item.id);
+  }
+});
+
+cardsEl.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && event.target.tagName === 'INPUT') event.target.blur();
+});
+
+$('types').addEventListener('click', (event) => {
+  const btn = event.target.closest('button[data-type]');
+  if (!btn || btn.dataset.type === state.type) return;
+  state.type = btn.dataset.type;
+  state.items.forEach((it) => { it.big = false; });
+  commit();
+});
+
+$('add').addEventListener('click', () => {
+  if (state.items.length >= MAX_ITEMS) return;
+  state.items.push(blank(nextTitle()));
+  save();
+  renderCards();
+  const last = cardsEl.lastElementChild;
+  if (last) {
+    last.querySelector('.price').focus();
+    last.scrollIntoView({ block: 'nearest' });
+  }
+});
+
+$('reset').addEventListener('click', () => {
+  state = { type: state.type, items: [blank('Товар 1'), blank('Товар 2')] };
+  save();
+  renderCards();
+});
+
+// События блока «Дополнительно»
+[['s-packs', 'packs'], ['s-n', 'buyN'], ['s-m', 'payM']].forEach(([inputId, key]) => {
+  $(inputId).addEventListener('input', (event) => {
+    const item = findItem(sheetId);
+    if (!item) return;
+    item[key] = event.target.value;
+    commit();
+  });
+});
+
+$('sheet-done').addEventListener('click', closeSheet);
+
+$('s-clear').addEventListener('click', () => {
+  const item = findItem(sheetId);
+  if (!item) return;
+  item.packs = '';
+  item.buyN = '';
+  item.payM = '';
+  $('s-packs').value = '';
+  $('s-n').value = '';
+  $('s-m').value = '';
+  commit();
+});
+
+$('s-remove').addEventListener('click', () => {
+  if (state.items.length <= MIN_ITEMS) return;
+  state.items = state.items.filter((it) => it.id !== sheetId);
+  closeSheet();
+  save();
+  renderCards();
+});
+
+// Нажатие на затемнение закрывает блок
+sheetEl.addEventListener('click', (event) => {
+  if (event.target === sheetEl) closeSheet();
+});
+
+sheetEl.addEventListener('close', () => {
+  sheetId = null;
+});
+
+renderCards();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
